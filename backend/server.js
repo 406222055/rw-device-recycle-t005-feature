@@ -322,8 +322,11 @@ function listDevices(url, store) {
   const status = url.searchParams.get("status") || "all";
   const keyword = (url.searchParams.get("keyword") || "").trim().toLowerCase();
   const category = url.searchParams.get("category") || "all";
-  const minPrice = Number(url.searchParams.get("minPrice") || 0);
-  const maxPrice = Number(url.searchParams.get("maxPrice") || 0);
+  const minPriceRaw = url.searchParams.get("minPrice");
+  const maxPriceRaw = url.searchParams.get("maxPrice");
+  const minPrice = minPriceRaw !== null && minPriceRaw !== "" ? Number(minPriceRaw) : null;
+  const maxPrice = maxPriceRaw !== null && maxPriceRaw !== "" ? Number(maxPriceRaw) : null;
+  const hasPriceFilter = minPrice !== null || maxPrice !== null;
   const dateRange = url.searchParams.get("dateRange") || "all";
   const hasRiskParam = url.searchParams.get("hasRisk");
   const hasRisk = hasRiskParam === "true";
@@ -359,14 +362,13 @@ function listDevices(url, store) {
         .includes(keyword);
     })
     .filter((device) => {
-      if (!minPrice) return true;
-      const quotePrice = device.inspection?.quotePrice || 0;
-      return quotePrice >= minPrice;
-    })
-    .filter((device) => {
-      if (!maxPrice) return true;
-      const quotePrice = device.inspection?.quotePrice || 0;
-      return quotePrice <= maxPrice;
+      const quotePrice = device.inspection?.quotePrice;
+      if (hasPriceFilter) {
+        if (typeof quotePrice !== "number") return false;
+      }
+      if (minPrice !== null && quotePrice < minPrice) return false;
+      if (maxPrice !== null && quotePrice > maxPrice) return false;
+      return true;
     })
     .filter((device) => {
       if (!dateFrom) return true;
